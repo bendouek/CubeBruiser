@@ -1,0 +1,64 @@
+#portfolio
+{
+	position:fixed;left:480px;top:-5;height:40px;width:138px;z-index:100;
+	-webkit-transition: all 0.3s ease-in-out;
+	-moz-transition: all 0.3s ease-in-out;
+	-o-transition: all 0.3s ease-in-out;
+	transition: all 0.3s ease-in-out;
+}
+
+
+#profile
+{
+	position:fixed;left:320px;top:-5;height:40px;width:138px;z-index:100;
+	-webkit-transition: all 0.3s ease-in-out;
+	-moz-transition: all 0.3s ease-in-out;
+	-o-transition: all 0.3s ease-in-out;
+	transition: all 0.3s ease-in-out;
+}
+
+
+#triangle
+{
+	position:fixed;left:615px;top:-5;height:40px;width:138px;z-index:100;
+	-webkit-transition: all 0.3s ease-in-out;
+	-moz-transition: all 0.3s ease-in-out;
+	-o-transition: all 0.3s ease-in-out;
+	transition: all 0.3s ease-in-out;
+	visibility:hidden;
+}
+
+
+#circle
+{
+	position:fixed;left:715px;top:-5;height:40px;width:138px;z-index:100;
+	-webkit-transition: all 0.3s ease-in-out;
+	-moz-transition: all 0.3s ease-in-out;
+	-o-transition: all 0.3s ease-in-out;
+	transition: all 0.3s ease-in-out;
+	visibility:hidden;
+}
+
+
+#portfolio:hover
+{
+	top:0;
+}
+
+
+#profile:hover
+{
+	top:0;
+}
+
+
+#triangle:hover
+{
+	top:0;
+}
+
+
+#circle:hover
+{
+	top:0;
+}

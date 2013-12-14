@@ -1,0 +1,651 @@
+<html>
+<head>
+  <title> Ben Douek Design </title>
+  <link rel="icon" type="image/png" href="images/favicon.ico">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script type="text/JavaScript" src="jsDraw2D.js"></script>
+  <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+</head>
+
+
+
+
+
+
+
+
+
+
+<body onload="newGame()" onkeydown="keyDown(event)" onkeyup="keyUp(event)" bgcolor='black' style="overflow:hidden;">
+
+  <div id="viewPort" style="width:99%;height:99%;overflow:hidden;position:absolute;left:3;top:0;background-image:url('images/tunnel.png');background-size:100% 100%;
+    background-repeat:no-repeat; border: 3px solid #01bcff; border-radius:2px;">
+
+    <!-- The Level -->
+    <div id="levelBackground" style="width:5700px;height:1000px;position:absolute;left:0;top:0;background-image:url('images/bkIso.png');">
+    </div>
+
+    <!-- The Item Menu -->
+    <img id='pannel' src='images/pannel.png' style='position:fixed;right:4px;bottom:2px;height:90px;width:290px;z-index:100;'/>
+    <img id='pannel-2' src='images/blockI.png' style='position:fixed;right:174px;bottom:35px;height:30px;width:30px;z-index:101;'/>
+    <img id='pannel-1' src='images/blockI.png' style='position:fixed;right:212px;bottom:8px;height:30px;width:30px;z-index:101;'/>
+    <img id='pannel-4' src='images/blockI.png' style='position:fixed;right:97px;bottom:35px;height:30px;width:30px;z-index:101;'/>
+    <img id='pannel-3' src='images/blockI.png' style='position:fixed;right:135px;bottom:8px;height:30px;width:30px;z-index:100;'/>
+    <img id='pannel-6' src='images/blockI.png' style='position:fixed;right:19px;bottom:35px;height:30px;width:30px;z-index:100;'/>
+    <img id='pannel-5' src='images/blockI.png' style='position:fixed;right:57px;bottom:8px;height:30px;width:30px;z-index:100;'/>
+
+    <img id='name' src='images/name.png' style='position:fixed;left:20px;top:0px;height:70px;width:280px;z-index:100;'/>
+    <img id='profile' src='images/profile.png' style=''/>
+    <img id='portfolio' src='images/portfolio.png' style=''/>
+    <img id='triangle' src='images/triangle.png' style=''/>
+    <img id='circle' src='images/circles.png' style=''/>
+  </div>
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+//settings
+var frameRate = 10;
+var trailFadeSpeed = 55;
+
+//level boundary
+var minx = 0;
+var miny = 0;
+var maxx = 5670; // 30 pixels for character's width
+var maxy = 970; // 30 pixels for character's width
+
+//viewport info
+var viewportWidth  = document.documentElement.clientWidth;
+var viewportHeight = document.documentElement.clientHeight;
+var viewOne = $("#viewPort");
+
+//audio
+var ping = new Audio("music/bounceII.mp3");
+var pah = new Audio("music/pah.mp3");
+var piff = new Audio("music/piff.mp3");
+
+//images
+var playerBlock = new imageObject(60,60,"images/blockP.png");
+var blueBlock = new imageObject(60,60,"images/block.png");
+var wallBottom = new imageObject(113,99,"images/wall.png");
+var wallTop = new imageObject(113,99,"images/wall2.png");
+
+//counters
+var playCount = 0;
+var trailCount = 0;
+var hitNum = 0;
+
+// controller vars
+var upPressed = 0;
+var downPressed = 0;
+var leftPressed = 0;
+var rightPressed = 0;
+
+// game objects
+allGameObjects = [];
+trail = [];
+
+
+
+
+
+
+
+
+
+
+function newGame() 
+{
+  // Player MUST BE 0th ELEMENT!
+  addPlayer();
+
+  //Load the level
+  levelOne() 
+
+  //Start the loop
+  gameLoop()
+}
+
+
+
+
+
+
+
+
+function addPlayer()
+{
+  player = new gameObjectFull(1,200,400,"player",playerBlock,15,0.88,6,0,0);
+  allGameObjects.push(player);
+  addTrail();
+}
+
+
+function gameLoop()
+{
+
+  updatePosition();
+  collisionCheck();
+
+  var player = allGameObjects[0];
+
+  // change player speed based on keyboard events
+  if (upPressed == 1)
+    player.yspeed = Math.max(player.yspeed - 1,-1*player.maxSpeed);
+  if (downPressed == 1)
+    player.yspeed = Math.min(player.yspeed + 1,1*player.maxSpeed)
+  if (rightPressed == 1)
+    player.xspeed = Math.min(player.xspeed + 1,1*player.maxSpeed);
+  if (leftPressed == 1)
+    player.xspeed = Math.max(player.xspeed - 1,-1*player.maxSpeed);
+
+  // deceleration of player
+  if (upPressed == 0 && downPressed == 0)
+     slowDownY(player);
+  if (leftPressed == 0 && rightPressed == 0)
+     slowDownX(player);
+
+  // loop
+  setTimeout("gameLoop()",frameRate);
+}
+
+
+function updatePosition (){
+  //all objects update position
+  for(var i in allGameObjects){
+
+    //Only move objects that are moveable
+    if(allGameObjects[i].moveable){
+
+      allGameObjects[i].prevy = allGameObjects[i].ypos;
+      allGameObjects[i].prevx = allGameObjects[i].xpos;
+
+      // change position based on speed
+      allGameObjects[i].xpos = Math.min(Math.max(allGameObjects[i].xpos + allGameObjects[i].xspeed,minx),maxx);
+      allGameObjects[i].ypos = Math.min(Math.max(allGameObjects[i].ypos + allGameObjects[i].yspeed,miny),maxy);
+
+      // change visual element position in DOM
+      document.getElementById(allGameObjects[i].elementId).style.left = allGameObjects[i].xpos;
+      document.getElementById(allGameObjects[i].elementId).style.top = allGameObjects[i].ypos;
+
+      if( i == 0) {
+        //viewport following player perspective
+        viewOne.scrollTop(allGameObjects[0].ypos - 400 );
+        viewOne.scrollLeft(allGameObjects[0].xpos - viewportWidth/2);
+
+        //trail
+        computeTrail();
+      }
+      else {
+        //deceleration of all objects other than player
+        slowDownY(allGameObjects[i]);
+        slowDownX(allGameObjects[i]);
+      }
+
+    }//end if
+
+  } //end for
+
+}
+
+
+
+
+
+
+
+
+
+function collisionCheck()
+{
+  for(var i in allGameObjects)
+  {
+    for(var j in allGameObjects)
+    {
+      
+      //Don't check for collisions with self
+      if(i != j)
+      {
+
+        if( intersectRadius(allGameObjects[i],allGameObjects[j]) )
+        {
+          //Two objects collide
+
+          //check for unique conditions
+          collisionConditions(i,j);
+
+          
+          if(allGameObjects[i].moveable && allGameObjects[j].moveable){
+            //transfer energy between two moveable objects
+            transferVelocity(i,j);
+          }
+          else if(allGameObjects[i].moveable && !allGameObjects[j].moveable){
+            bounce(i,1,1);
+          }
+          else if(!allGameObjects[i].moveable && allGameObjects[j].moveable){
+            bounce(j,1,1);
+          }
+          
+        }
+
+        //object reaches level limits
+        else if ( allGameObjects[i].xpos == maxx
+          || allGameObjects[i].xpos == 0 )
+        {
+          //object collides with horizontal wall
+          bounce(i,1,0)
+        }
+        else if ( allGameObjects[i].ypos == maxy
+          || allGameObjects[i].ypos == 0){
+          //object collides with vertical wall
+          bounce(i,0,1);
+        }
+
+      }
+
+    }
+  }
+}
+
+
+function collisionConditions(i,j)
+{
+  //When player hits anything
+  if(i == 0 || j == 0){
+    document.getElementById("pannel-"+(hitNum%6+1)).src = "images/blockP.png";
+    hitNum+=1;
+  }
+}
+
+function intersect(gameElementOne, gameElementTwo)
+{
+  if(between(gameElehmentOne.ypos, gameElementTwo.ypos-5, gameElementTwo.ypos+60) &&
+  between(gameElementOne.xpos, gameElementTwo.xpos-5, gameElementTwo.xpos+60) )
+  {
+    //alert("coolideee");
+    return true;
+  }
+
+  return false;
+}
+
+
+function intersectRadius(gameElementOne, gameElementTwo)
+{
+    //Calculate the distance between the center points of both objects
+    var dist = Math.sqrt(  Math.pow( (gameElementOne.xpos+gameElementOne.radius) - (gameElementTwo.xpos+gameElementTwo.radius), 2) + Math.pow( (gameElementOne.ypos+gameElementOne.radius) - (gameElementTwo.ypos+gameElementTwo.radius), 2));
+    if (dist <= gameElementOne.radius)
+    {
+      //alert("coolideee");
+      return true;
+    }
+
+    return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function bounce(i,XTRUE,YTRUE)
+{
+  ping.play();
+
+  if(XTRUE){
+    //Horizontal Collision
+    allGameObjects[i].xspeed = -allGameObjects[i].xspeed;
+  }
+  if(YTRUE){
+    //Vertical Collision    
+    allGameObjects[i].yspeed = -allGameObjects[i].yspeed;
+  }
+
+  //Don't overlap
+  allGameObjects[i].ypos = allGameObjects[i].prevy;
+  allGameObjects[i].xpos = allGameObjects[i].prevx;
+}
+
+
+function transferVelocity(i,j)
+{
+  ping.play();
+
+  //Transfer energy from object i to object j and viseversa
+  var tmpi = new Object();
+  tmpi.y = allGameObjects[i].yspeed;
+  tmpi.x = allGameObjects[i].xspeed;
+  var tmpj = new Object();
+  tmpj.y = allGameObjects[j].yspeed;
+  tmpj.x = allGameObjects[j].xspeed;
+
+
+  allGameObjects[i].yspeed = tmpj.y;
+  allGameObjects[i].xspeed = tmpj.x;
+
+  allGameObjects[j].yspeed = tmpi.y;
+  allGameObjects[j].xspeed = tmpi.x;
+
+  //Don't let objects overlap 
+  //move them back to previous position on collision
+  allGameObjects[i].ypos = allGameObjects[i].prevy;
+  allGameObjects[i].xpos = allGameObjects[i].prevx;
+  allGameObjects[j].ypos = allGameObjects[j].prevy;
+  allGameObjects[j].xpos = allGameObjects[j].prevx;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function gameObject(moveable,x,y,elementId,image)
+{
+  this.moveable = moveable;
+  this.xpos = x;
+  this.ypos = y;
+  this.xspeed = 1;
+  this.yspeed = 0;
+  this.maxSpeed = 5;
+  this.coefficient = 0.98;
+  this.elementId = elementId;
+  this.prevx = x;
+  this.prevy = y;
+  this.radius = (image.xsize/2)+10; //TODO: FIX!!!
+  this.image = image;
+
+  //add it to html canvas
+  addElement(image.srcimage,elementId,x,y,image.xsize,image.ysize,10);
+}
+
+function gameObjectFull(moveable,x,y,elementId,image,zindex,coefficient,maxSpeed,xspeed,yspeed)
+{
+  this.moveable = moveable;
+  this.xpos = x;
+  this.ypos = y;
+  this.xspeed = xspeed;
+  this.yspeed = yspeed;
+  this.maxSpeed = maxSpeed;
+  this.coefficient = coefficient;
+  this.elementId = elementId;
+  this.prevx = x;
+  this.prevy = y;
+  this.radius = (image.xsize/2)+10; //TODO: FIX!!!
+  this.image = image;
+
+  //add it to html canvas
+  addElement(image.srcimage,elementId,x,y,image.xsize,image.ysize,zindex);
+}
+
+
+function wallObject(moveable,x,y,elementId,imageOne,imageTwo)
+{
+  this.moveable = moveable;
+  this.xpos = x;
+  this.ypos = y;
+  this.elementId = elementId;
+  this.radius = (imageOne.xsize/2); //TODO: FIX!!!
+  this.imageOne = imageOne;
+  this.imageTwo = imageTwo;
+
+  //add it to html canvas
+  addElement(imageOne.srcimage,elementId,x,y,imageOne.xsize,imageOne.ysize,1);
+  addElement(imageTwo.srcimage,elementId+"top",x,y,imageTwo.xsize,imageTwo.ysize,20);
+}
+
+
+function imageObject(xsize, ysize,srcimage)
+{
+  this.xsize = xsize;
+  this.ysize = ysize;
+  this.srcimage = srcimage;
+}
+
+
+function levelOne() 
+{
+  // Level objects
+  obj1 = new gameObject(1,700,200,"obj1", blueBlock);
+  allGameObjects.push(obj1);
+
+  obj2 = new gameObject(1,600,300,"obj2", blueBlock);
+  allGameObjects.push(obj2);
+
+  obj3 = new gameObject(1,800,300,"obj3", blueBlock);
+  allGameObjects.push(obj3);
+
+  obj4 = new gameObject(1,700,600,"obj4", blueBlock);
+  allGameObjects.push(obj4);
+
+  obj5 = new gameObject(1,600,500,"obj5", blueBlock);
+  allGameObjects.push(obj5);
+
+  obj6 = new gameObject(1,800,500,"obj6", blueBlock);
+  allGameObjects.push(obj6);
+
+  obj7 = new gameObject(1,700,400,"obj7", blueBlock);
+  allGameObjects.push(obj7);
+
+  obj8 = new gameObject(1,1000,400,"obj8", blueBlock);
+  allGameObjects.push(obj8);
+
+  wall1 = new wallObject(0,220,164,"wall1",wallTop,wallBottom);
+  allGameObjects.push(wall1);
+  wall2 = new wallObject(0,330,164,"wall2",wallTop,wallBottom);
+  allGameObjects.push(wall2);
+  wall3 = new wallObject(0,275,195,"wall3",wallTop,wallBottom);
+  allGameObjects.push(wall3);
+  wall4 = new wallObject(0,220,229,"wall4",wallTop,wallBottom);
+  allGameObjects.push(wall4);
+  wall5 = new wallObject(0,330,229,"wall5",wallTop,wallBottom);
+  allGameObjects.push(wall5);
+
+ /* wall6 = new wallObject(0,275,195,"wall6",wallTop,wallBottom);
+  allGameObjects.push(wall6);
+*/
+  wall7 = new wallObject(0,1440,164,"wall7",wallTop,wallBottom);
+  allGameObjects.push(wall7);
+  wall8 = new wallObject(0,1550,164,"wall8",wallTop,wallBottom);
+  allGameObjects.push(wall8);
+  wall9 = new wallObject(0,1495,195,"wall9",wallTop,wallBottom);
+  allGameObjects.push(wall9);
+}
+
+
+
+
+
+
+
+
+
+function keyDown(e)
+{
+  var code = e.keyCode ? e.keyCode : e.which;
+  if (code == 38)
+    upPressed = 1;
+  if (code == 40)
+    downPressed = 1;
+  if (code == 37)
+    leftPressed = 1;
+  if (code == 39)
+    rightPressed = 1;
+  if (code == 87)
+    upPressed = 1;
+  if (code == 83)
+    downPressed = 1;
+  if (code == 65)
+    leftPressed = 1;
+  if (code == 68)
+    rightPressed = 1;
+}
+
+
+function keyUp(e)
+{
+  var code = e.keyCode ? e.keyCode : e.which;
+  if (code == 38)
+    upPressed = 0;
+  if (code == 40)
+    downPressed = 0;
+  if (code == 37)
+    leftPressed = 0;
+  if (code == 39)
+    rightPressed = 0;
+  if (code == 87)
+    upPressed = 0;
+  if (code == 83)
+    downPressed = 0;
+  if (code == 65)
+    leftPressed = 0;
+  if (code == 68)
+    rightPressed = 0;
+}
+
+
+// Mouse movment
+viewOne.click(function(e) {
+  if(playCount%2){
+    pah.play();
+  }
+  else {
+    piff.play();
+  }
+  
+  var posX = viewOne.scrollLeft(), posY = viewOne.scrollTop();
+  allGameObjects[0].xspeed = ((e.pageX+posX) - (allGameObjects[0].xpos+30))/2.5;
+  allGameObjects[0].yspeed = ((e.pageY+posY) - (allGameObjects[0].ypos+30))/2.5;
+
+  playCount += 1;
+});
+
+
+// Resize Event
+$( window ).resize(function() {
+ viewportWidth  = document.documentElement.clientWidth;
+ viewportHeight = document.documentElement.clientHeight;
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function slowDownX(gameElement)
+{
+  gameElement.xspeed = gameElement.xspeed * gameElement.coefficient;
+}
+
+function slowDownY(gameElement)
+{
+  gameElement.yspeed = gameElement.yspeed * gameElement.coefficient;
+}
+
+function between(x, min, max) {
+  return x >= min && x <= max;
+}
+
+function removeElement(divNum) 
+{
+  var d = document.getElementById("viewPort");
+  var olddiv = document.getElementById(divNum);
+  d.removeChild(olddiv);
+}
+
+function addElement(imgsrc,elementId,x,y,sizeX,sizeY,index)
+{
+  var img = document.createElement("img");
+  img.src = imgsrc;
+  img.style.position = "absolute";
+  img.style.left = x;
+  img.style.top = y;
+  img.style.height = sizeY;
+  img.style.width = sizeX;
+  img.style.zIndex = index;
+  img.id = elementId;
+  var doc = document.getElementById("viewPort");
+  doc.appendChild(img);
+  return img;
+}
+
+function redrawElement(i)
+{
+  document.getElementById(allGameObjects[i].elementId).src = allGameObjects[i].imgsrc;
+}
+
+
+function addTrail()
+{
+  for(var i=0; i<trailFadeSpeed; i+=1){
+    trail[i] = addElement("images/blockPTrail.png","trail"+i,allGameObjects[0].xpos,allGameObjects[0].ypos);
+    trail[i].style.opacity= '1';
+    trail[i].style.zIndex= '1';
+  }
+}
+
+
+function computeTrail()
+{
+  //Every step this is run it cycles one step further through 0-trailCount
+  //Moving the last of the trail (the one that is now transparent) 
+  //to the current location of the cube and setting the opacity to .73
+  //TODO: possible leak
+  trail[trailCount].style.top = allGameObjects[0].ypos;
+  trail[trailCount].style.left = allGameObjects[0].xpos;
+  trail[trailCount].style.opacity = 0.7;
+  trailCount += 1;
+  trailCount %= trailFadeSpeed;
+  for(var i in trail){
+    if(trail[i].style.opacity > 0) {
+      trail[i].style.opacity -= 1/trailFadeSpeed;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+</script>
+</body>
+
+</html>
